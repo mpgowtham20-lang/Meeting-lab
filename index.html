@@ -1,1 +1,935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Valid Meeting Lab — Interactive Classroom Simulator</title>
+<meta name="description" content="Drag-and-drop classroom simulator based on the Requisites of a Valid Meeting presentation.">
+<style>
+  :root{
+    --navy:#082d57;
+    --navy2:#0e4b8a;
+    --gold:#f7b82b;
+    --cream:#fffaf0;
+    --ink:#12243a;
+    --muted:#64748b;
+    --card:#ffffff;
+    --line:#dbe6f3;
+    --good:#11834a;
+    --goodBg:#e9f8ef;
+    --bad:#c73b2d;
+    --badBg:#fff0ee;
+    --blueBg:#eef6ff;
+    --shadow:0 18px 45px rgba(8,45,87,.13);
+    --radius:22px;
+  }
+
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;
+    font-family:Inter,Segoe UI,Arial,sans-serif;
+    color:var(--ink);
+    background:
+      radial-gradient(circle at 20% -10%, rgba(247,184,43,.18), transparent 28%),
+      radial-gradient(circle at 90% 0%, rgba(14,75,138,.12), transparent 30%),
+      linear-gradient(180deg,#f6fbff 0%,#eef5fb 100%);
+    min-height:100vh;
+  }
+
+  button,select,input{font:inherit}
+  button{cursor:pointer}
+
+  .hero{
+    background:linear-gradient(135deg,#062c54 0%,#0d4b89 65%,#1b6bb8 100%);
+    color:white;
+    padding:24px 22px 20px;
+    position:sticky;
+    top:0;
+    z-index:20;
+    box-shadow:0 10px 28px rgba(5,31,60,.25);
+  }
+  .hero-inner{max-width:1450px;margin:auto}
+  .kicker{
+    display:flex;gap:8px;align-items:center;flex-wrap:wrap;
+    font-size:.76rem;text-transform:uppercase;letter-spacing:.12em;
+    font-weight:800;opacity:.86
+  }
+  .kicker .pill{
+    border:1px solid rgba(255,255,255,.24);
+    padding:4px 9px;border-radius:999px;
+    background:rgba(255,255,255,.08)
+  }
+  h1{margin:7px 0 4px;font-size:clamp(1.55rem,3vw,2.55rem);line-height:1.1}
+  .subtitle{margin:0;opacity:.88;max-width:950px;font-size:clamp(.9rem,1.6vw,1.05rem)}
+  .toolbar{
+    margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center
+  }
+  .toolbar button,.toolbar select{
+    border:0;border-radius:12px;padding:9px 12px;font-weight:800;
+    background:white;color:var(--navy)
+  }
+  .toolbar button.secondary{background:rgba(255,255,255,.12);color:white;border:1px solid rgba(255,255,255,.2)}
+  .toolbar .scoreBox{
+    margin-left:auto;background:rgba(0,0,0,.16);border:1px solid rgba(255,255,255,.2);
+    padding:8px 12px;border-radius:12px;font-weight:800
+  }
+
+  .app{
+    max-width:1450px;margin:18px auto 50px;padding:0 18px;
+    display:grid;grid-template-columns:250px minmax(0,1fr);gap:18px
+  }
+  .sidebar{
+    background:rgba(255,255,255,.82);backdrop-filter:blur(12px);
+    border:1px solid rgba(219,230,243,.9);box-shadow:var(--shadow);
+    border-radius:var(--radius);padding:14px;align-self:start;position:sticky;top:165px
+  }
+  .side-title{font-weight:900;color:var(--navy);padding:8px 10px 10px}
+  .nav-btn{
+    width:100%;display:flex;align-items:center;gap:10px;text-align:left;
+    padding:10px;border:1px solid transparent;background:transparent;border-radius:14px;
+    color:var(--ink);font-weight:800;margin:2px 0
+  }
+  .nav-btn:hover{background:#f4f8fd}
+  .nav-btn.active{background:#eaf4ff;border-color:#cbe0f6;color:var(--navy)}
+  .nav-num{
+    width:29px;height:29px;border-radius:50%;display:grid;place-items:center;
+    background:#d9e9fa;color:var(--navy);font-size:.85rem;font-weight:900
+  }
+  .nav-btn.done .nav-num{background:var(--good);color:white}
+  .nav-txt{font-size:.9rem;line-height:1.2}
+  .side-note{font-size:.74rem;color:var(--muted);line-height:1.45;padding:12px 10px 4px}
+
+  .workspace{min-width:0}
+  .intro{
+    background:linear-gradient(135deg,#ffffff,#f9fcff);
+    border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);
+    padding:18px 20px;margin-bottom:16px
+  }
+  .intro-grid{display:grid;grid-template-columns:1.6fr 1fr;gap:14px;align-items:center}
+  .intro h2{margin:0 0 5px;color:var(--navy)}
+  .intro p{margin:0;color:#506174;line-height:1.55}
+  .pillars{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+  .pillar{padding:8px 11px;border-radius:12px;font-weight:900;font-size:.78rem}
+  .pillar.one{background:#fff3da;color:#9c5e00}
+  .pillar.two{background:#eaf3ff;color:#0c5baa}
+  .pillar.three{background:#eaf9ef;color:#167642}
+
+  .activity{display:none}
+  .activity.active{display:block}
+
+  .panel{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);overflow:hidden
+  }
+  .panel-head{
+    padding:18px 20px;background:linear-gradient(135deg,#f7fbff,#ffffff);
+    border-bottom:1px solid var(--line)
+  }
+  .eyebrow{font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--navy2);font-weight:900}
+  .panel-head h2{margin:5px 0 5px;font-size:1.45rem;color:var(--navy)}
+  .panel-head p{margin:0;color:#5d6f84;line-height:1.5}
+  .body{padding:18px 20px}
+
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+
+  .dropzone{
+    min-height:180px;border:2px dashed #b9cbe0;border-radius:18px;
+    background:#fbfdff;padding:12px;transition:.18s
+  }
+  .dropzone.over{border-color:#4c95dc;background:#eef7ff;transform:translateY(-1px)}
+  .dropzone h3{margin:0 0 8px;font-size:1rem;color:var(--navy)}
+  .zone-help{font-size:.72rem;color:#8191a5;margin-bottom:8px}
+  .bank{
+    padding:12px;border-radius:18px;background:#f6f9fc;border:1px solid var(--line);min-height:100px
+  }
+
+  .chips{display:flex;flex-wrap:wrap;gap:9px}
+  .chip{
+    display:inline-flex;align-items:center;gap:7px;user-select:none;
+    padding:9px 11px;border-radius:12px;background:white;
+    border:1px solid #cddbeb;box-shadow:0 5px 12px rgba(24,58,96,.08);
+    font-size:.84rem;font-weight:800;line-height:1.25;cursor:grab
+  }
+  .chip:active{cursor:grabbing}
+  .chip.selected{outline:3px solid rgba(22,106,186,.2);border-color:#3b86c6;transform:translateY(-1px)}
+  .chip.correct{border-color:#63bf8a;background:var(--goodBg)}
+  .chip.wrong{border-color:#e58c83;background:var(--badBg)}
+  .chip.locked{cursor:default}
+
+  .btnrow{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}
+  .btn{
+    border:0;border-radius:12px;padding:10px 14px;font-weight:900
+  }
+  .btn.primary{background:var(--navy);color:white}
+  .btn.gold{background:var(--gold);color:#3a2a00}
+  .btn.soft{background:#eef4fa;color:var(--navy)}
+  .btn.good{background:var(--good);color:white}
+  .btn.bad{background:#8e342b;color:white}
+  .btn.small{padding:7px 9px;font-size:.82rem}
+
+  .feedback{
+    display:none;margin-top:13px;padding:12px 13px;border-radius:13px;
+    font-weight:800;line-height:1.45
+  }
+  .feedback.show{display:block}
+  .feedback.good{background:var(--goodBg);color:#10643a}
+  .feedback.bad{background:var(--badBg);color:#9f3129}
+
+  /* Activity 2 */
+  .scenario{
+    display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;background:#f9fbfe;
+    padding:12px;border:1px solid var(--line);border-radius:15px
+  }
+  .scenario label{font-size:.72rem;color:var(--muted);font-weight:800;display:block;margin-bottom:5px}
+  .scenario select{padding:10px;border:1px solid #c9d8e8;border-radius:10px;background:white;font-weight:800}
+  .counter{
+    display:flex;gap:10px;align-items:center;flex-wrap:wrap
+  }
+  .counter .big{font-size:2.3rem;line-height:1;font-weight:950;color:var(--navy)}
+  .room{
+    min-height:250px;border-radius:20px;background:linear-gradient(180deg,#f6fbff,#ecf5fc);
+    border:2px solid #cfe2f4;padding:14px;position:relative
+  }
+  .room-title{display:flex;justify-content:space-between;gap:10px;align-items:center}
+  .room-title strong{color:var(--navy)}
+  .quota{font-size:.82rem;font-weight:900;padding:6px 9px;border-radius:10px;background:#fff3da;color:#8e5a00}
+  .room .tokens{display:flex;flex-wrap:wrap;gap:7px;padding-top:12px}
+  .token{
+    width:34px;height:34px;border-radius:50%;display:grid;place-items:center;
+    background:#dfeefc;color:#124b83;font-weight:950;border:2px solid #9bc2e7;cursor:grab;
+    font-size:.78rem
+  }
+  .token.placed{background:#fff2cc;border-color:#e7ba45}
+  .statusbar{margin-top:10px;padding:10px 12px;border-radius:12px;background:white;border:1px solid var(--line);font-weight:800}
+
+  /* Activity 4 order */
+  .sequence{
+    min-height:115px;border:2px dashed #b7c9dd;border-radius:18px;padding:11px;
+    display:flex;gap:8px;flex-wrap:wrap;background:#fbfdff
+  }
+  .seq-card{
+    padding:10px 12px;background:white;border:1px solid #c9d8e8;border-radius:12px;
+    font-size:.82rem;font-weight:900;cursor:grab;box-shadow:0 4px 10px rgba(24,58,96,.07)
+  }
+  .seq-card .n{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#eaf4ff;color:#11589a;margin-right:7px}
+
+  /* Activity 5 scenarios */
+  .scenario-card{
+    border:1px solid var(--line);border-radius:17px;padding:13px;background:#fcfdff;
+  }
+  .scenario-card .q{font-weight:900;line-height:1.4;margin-bottom:9px}
+  .choice-row{display:flex;gap:7px;flex-wrap:wrap}
+  .choice{
+    border:1px solid #c6d7e9;background:white;border-radius:10px;padding:8px 10px;font-weight:900;
+  }
+  .choice.correct{background:var(--goodBg);border-color:#61bd89}
+  .choice.incorrect{background:var(--badBg);border-color:#dc8a80}
+
+  /* Activity 6 case matching */
+  .case-card{
+    border:1px solid var(--line);border-radius:17px;padding:13px;background:#fff
+  }
+  .case-title{font-weight:950;color:var(--navy);margin-bottom:5px}
+  .case-fact{font-size:.81rem;color:#5f7085;line-height:1.45;min-height:70px}
+  .case-drop{
+    margin-top:10px;min-height:62px;border:2px dashed #c3d4e6;border-radius:13px;
+    padding:8px;background:#fbfdff
+  }
+  .case-drop.over{background:#eef7ff;border-color:#4a94d7}
+  .case-drop .placed-label{font-size:.78rem;font-weight:900}
+  .principles{display:flex;flex-wrap:wrap;gap:9px;margin-top:12px}
+
+  /* Activity 7 */
+  .mini-title{font-weight:950;color:var(--navy);margin:0 0 8px}
+  .checklist{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  .check-item{
+    padding:11px;border:1px solid var(--line);border-radius:13px;background:#fff;
+    display:flex;gap:8px;align-items:flex-start
+  }
+  .check-item input{margin-top:3px;transform:scale(1.12)}
+  .check-item span{font-size:.83rem;font-weight:800;line-height:1.35}
+
+  .teacher{
+    margin-top:16px;border:1px solid #ecd9a7;background:#fffaf0;border-radius:15px;padding:12px 13px
+  }
+  .teacher strong{color:#7a5600}
+  .teacher p{margin:4px 0 0;font-size:.83rem;line-height:1.45;color:#6a5a34}
+
+  .foot{
+    margin-top:16px;color:#6f7e90;font-size:.74rem;line-height:1.5;text-align:center
+  }
+
+  .confetti{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:50}
+  .confetti i{
+    position:absolute;top:-20px;width:8px;height:14px;border-radius:2px;
+    animation:fall 1.9s linear forwards
+  }
+  @keyframes fall{to{transform:translateY(110vh) rotate(600deg);opacity:.85}}
+
+  .toast{
+    position:fixed;right:18px;bottom:18px;z-index:60;max-width:360px;
+    background:#102b4b;color:white;padding:12px 14px;border-radius:14px;
+    box-shadow:var(--shadow);display:none;font-weight:800;line-height:1.35
+  }
+  .toast.show{display:block}
+
+  .hidden{display:none!important}
+  .muted{color:var(--muted)}
+
+  @media (max-width:1050px){
+    .app{grid-template-columns:1fr}
+    .sidebar{position:static;display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+    .side-title,.side-note{grid-column:1/-1}
+    .nav-btn{margin:0}
+  }
+  @media (max-width:820px){
+    .grid-2,.grid-3,.intro-grid{grid-template-columns:1fr}
+    .pillars{justify-content:flex-start}
+    .checklist{grid-template-columns:1fr}
+    .sidebar{grid-template-columns:1fr 1fr}
+    .toolbar .scoreBox{margin-left:0}
+  }
+  @media (max-width:560px){
+    .hero{padding:18px 14px}
+    .app{padding:0 10px}
+    .body,.panel-head{padding:14px}
+    .sidebar{grid-template-columns:1fr}
+    .nav-btn{padding:8px}
+    .dropzone{min-height:155px}
+  }
+
+  @media print{
+    .hero{position:static;box-shadow:none}
+    .sidebar,.toolbar,.teacher,.btnrow,.foot{display:none!important}
+    .app{display:block;margin:0;padding:0}
+    .activity{display:block!important;margin-bottom:20px}
+    body{background:white}
+    .panel,.intro{box-shadow:none}
+  }
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="hero-inner">
+    <div class="kicker">
+      <span class="pill">Classroom Simulator</span>
+      <span>Company Meetings</span>
+      <span>Companies Act — source-aligned</span>
+    </div>
+    <h1>VALID MEETING LAB</h1>
+    <p class="subtitle">A drag-and-drop, scenario-based simulator for learning how a company meeting is properly convened, legally constituted and properly conducted.</p>
+    <div class="toolbar">
+      <button class="secondary" id="timerBtn">▶ Start 10:00</button>
+      <button class="secondary" id="fullscreenBtn">⛶ Fullscreen</button>
+      <button class="secondary" onclick="window.print()">🖨 Print</button>
+      <button class="secondary" id="resetAllBtn">↺ Reset</button>
+      <select id="modeSelect" aria-label="Mode">
+        <option value="student">Student Mode</option>
+        <option value="teacher">Teacher Mode</option>
+      </select>
+      <div class="scoreBox">Score: <span id="score">0</span> / <span id="maxScore">60</span> · Progress <span id="progress">0%</span></div>
+    </div>
+  </div>
+</header>
+
+<main class="app">
+  <aside class="sidebar">
+    <div class="side-title">Activity Stations</div>
+    <button class="nav-btn active" data-target="a1"><span class="nav-num">1</span><span class="nav-txt">Three Pillars Sort</span></button>
+    <button class="nav-btn" data-target="a3"><span class="nav-num">2</span><span class="nav-txt">Notice Detective</span></button>
+    <button class="nav-btn" data-target="a4"><span class="nav-num">3</span><span class="nav-txt">Run the Meeting</span></button>
+    <button class="nav-btn" data-target="a7"><span class="nav-num">4</span><span class="nav-txt">Resolutions & Minutes</span></button>
+    <div class="side-note">Tip: drag cards, or click a card and then click a destination. The simulator is designed for classroom projection and small-group work.</div>
+  </aside>
+
+  <section class="workspace">
+    <div class="intro">
+      <div class="intro-grid">
+        <div>
+          <h2>Mission: Conduct a Valid Meeting</h2>
+          <p>Complete the seven stations. The activities follow the presentation's core framework and turn the content into sorting, calculation, decision-making, sequencing and case-based tasks.</p>
+        </div>
+        <div class="pillars">
+          <span class="pillar one">① Properly Convened</span>
+          <span class="pillar two">② Legally Constituted</span>
+          <span class="pillar three">③ Properly Conducted</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- A1 -->
+    <section class="activity active" id="a1">
+      <div class="panel">
+        <div class="panel-head">
+          <div class="eyebrow">Station 1 · Drag & Drop</div>
+          <h2>Three Pillars Sort</h2>
+          <p>Sort each card into the pillar it belongs to. This is the deck's opening framework: properly convened, legally constituted and properly conducted.</p>
+        </div>
+        <div class="body">
+          <div class="grid-3">
+            <div class="dropzone" data-cat="convened">
+              <h3>① Properly Convened</h3>
+              <div class="zone-help">Notice • convening authority • agenda</div>
+              <div class="chips"></div>
+            </div>
+            <div class="dropzone" data-cat="constituted">
+              <h3>② Legally Constituted</h3>
+              <div class="zone-help">Quorum • chairman • officers</div>
+              <div class="chips"></div>
+            </div>
+            <div class="dropzone" data-cat="conducted">
+              <h3>③ Properly Conducted</h3>
+              <div class="zone-help">Agenda • discussion • order • voting</div>
+              <div class="chips"></div>
+            </div>
+          </div>
+          <div class="bank" style="margin-top:14px">
+            <div class="zone-help">Card bank — place every card</div>
+            <div class="chips" id="bank1"></div>
+          </div>
+          <div class="btnrow">
+            <button class="btn primary" id="checkA1">Check Sort</button>
+            <button class="btn soft" id="resetA1">Reset Station</button>
+          </div>
+          <div class="feedback" id="fbA1"></div>
+          <div class="teacher">
+            <strong>Teacher prompt:</strong>
+            <p>Ask groups to justify one difficult placement before revealing the score. Connect their reasoning back to the three-pillar framework.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    
+
+    <!-- A3 -->
+    <section class="activity" id="a3">
+      <div class="panel">
+        <div class="panel-head">
+          <div class="eyebrow">Station 2 · Notice Detective</div>
+          <h2>Build a Proper Notice</h2>
+          <p>Drag the items that belong in a valid meeting notice into the notice board. Leave the distractors outside.</p>
+        </div>
+        <div class="body">
+          <div class="grid-2">
+            <div class="dropzone" id="noticeBoard" data-cat="include">
+              <h3>📨 Notice Board</h3>
+              <div class="zone-help">Items the notice should contain / address</div>
+              <div class="chips"></div>
+            </div>
+            <div class="dropzone" id="noticeOutside" data-cat="exclude">
+              <h3>🚫 Not a substitute</h3>
+              <div class="zone-help">Move distractors here</div>
+              <div class="chips"></div>
+            </div>
+          </div>
+          <div class="bank" style="margin-top:14px">
+            <div class="zone-help">Notice cards</div>
+            <div class="chips" id="bank3"></div>
+          </div>
+          <div class="btnrow">
+            <button class="btn primary" id="checkA3">Check Notice</button>
+            <button class="btn soft" id="resetA3">Reset Station</button>
+          </div>
+          <div class="feedback" id="fbA3"></div>
+          <div class="teacher">
+            <strong>Teacher prompt:</strong>
+            <p>Pause on shorter notice: the deck states that shorter notice for an AGM is allowed when 95% of members entitled to vote consent. It also distinguishes intentional from accidental omission of notice.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- A4 -->
+    <section class="activity" id="a4">
+      <div class="panel">
+        <div class="panel-head">
+          <div class="eyebrow">Station 3 · Sequencing Challenge</div>
+          <h2>Run the Meeting</h2>
+          <p>Arrange the cards into a sensible classroom sequence from preparation through record-keeping. The order is a teaching sequence derived from the presentation, not a claim that every step has a single statutory ordering.</p>
+        </div>
+        <div class="body">
+          <div class="sequence" id="sequenceZone">
+            <span class="muted" id="seqPlaceholder">Drop cards here in the order you choose…</span>
+          </div>
+          <div class="bank" style="margin-top:14px">
+            <div class="zone-help">Step cards</div>
+            <div class="chips" id="bank4"></div>
+          </div>
+          <div class="btnrow">
+            <button class="btn primary" id="checkA4">Check Sequence</button>
+            <button class="btn soft" id="resetA4">Reset Station</button>
+          </div>
+          <div class="feedback" id="fbA4"></div>
+          <div class="teacher">
+            <strong>Teacher prompt:</strong>
+            <p>Have pairs explain why they placed discussion before voting and minutes after the proceedings. Then ask where the chairman's role appears throughout the sequence.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    
+
+    
+
+    <!-- A7 -->
+    <section class="activity" id="a7">
+      <div class="panel">
+        <div class="panel-head">
+          <div class="eyebrow">Station 4 · Final Check</div>
+          <h2>Resolutions & Minutes</h2>
+          <p>Complete both mini-tasks: sort examples of ordinary and special business, then select the items the deck says belong in properly maintained minutes.</p>
+        </div>
+        <div class="body">
+          <div class="grid-2">
+            <div>
+              <h3 class="mini-title">A. Resolution / business sorter</h3>
+              <div class="grid-2">
+                <div class="dropzone" data-cat="ordinary" id="ordinaryZone">
+                  <h3>Ordinary Business</h3>
+                  <div class="zone-help">Place relevant examples</div>
+                  <div class="chips"></div>
+                </div>
+                <div class="dropzone" data-cat="special" id="specialZone">
+                  <h3>Special Business</h3>
+                  <div class="zone-help">Place relevant examples</div>
+                  <div class="chips"></div>
+                </div>
+              </div>
+              <div class="bank" style="margin-top:10px">
+                <div class="zone-help">Business cards</div>
+                <div class="chips" id="businessBank"></div>
+              </div>
+            </div>
+            <div>
+              <h3 class="mini-title">B. Minutes checklist</h3>
+              <div class="checklist" id="minutesChecklist"></div>
+              <div class="statusbar" style="margin-top:10px">Select all items supported by the presentation.</div>
+            </div>
+          </div>
+          <div class="btnrow">
+            <button class="btn gold" id="checkA7">Check Final Station</button>
+            <button class="btn soft" id="resetA7">Reset Station</button>
+          </div>
+          <div class="feedback" id="fbA7"></div>
+          <div class="teacher">
+            <strong>Teacher prompt:</strong>
+            <p>Ask students to distinguish the nature of business from the voting threshold. The presentation separately describes ordinary/special business and ordinary/special resolutions.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="foot">
+      Built as a self-contained HTML/CSS/JavaScript classroom simulator. No internet connection or external library is required after the file is saved.
+    </div>
+  </section>
+</main>
+
+<div class="toast" id="toast"></div>
+<div class="confetti" id="confetti"></div>
+
+<script>
+const $ = (s, root=document) => root.querySelector(s);
+const $$ = (s, root=document) => [...root.querySelectorAll(s)];
+
+let state = {
+  score: 0,
+  completed: new Set(),
+  max: 60,
+  selectedId: null,
+  timer: 600,
+  timerRunning: false,
+  timerInterval: null
+};
+
+const setText = (id, value) => { const e = document.getElementById(id); if(e) e.textContent = value; };
+
+function updateHeader(){
+  setText("score", state.score);
+  setText("maxScore", state.max);
+  const pct = Math.round((state.completed.size / 4) * 100);
+  setText("progress", pct + "%");
+  $$(".nav-btn").forEach(b => {
+    b.classList.toggle("done", state.completed.has(b.dataset.target));
+  });
+}
+
+function toast(msg){
+  const t = $("#toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(t._timer);
+  t._timer = setTimeout(()=>t.classList.remove("show"), 2500);
+}
+
+function celebrate(){
+  const c = $("#confetti");
+  c.innerHTML = "";
+  for(let i=0;i<70;i++){
+    const el = document.createElement("i");
+    el.style.left = Math.random()*100 + "%";
+    el.style.animationDelay = (Math.random()*0.45)+"s";
+    el.style.transform = `translateY(-20px) rotate(${Math.random()*360}deg)`;
+    el.style.background = ["#f7b82b","#0e4b8a","#11834a","#c73b2d","#7a4cc7"][i%5];
+    c.appendChild(el);
+  }
+  setTimeout(()=>c.innerHTML="",2200);
+}
+
+function finish(id, earned, maxForStation, message){
+  const wasDone = state.completed.has(id);
+  if(!wasDone){
+    state.score += earned;
+    state.completed.add(id);
+  }
+  updateHeader();
+  const fb = $("#fb"+id.toUpperCase());
+  if(fb){
+    fb.className = "feedback show " + (earned >= maxForStation*0.8 ? "good" : "bad");
+    fb.innerHTML = message + (wasDone ? "<br><span style='opacity:.75'>Station already completed; score not added again.</span>" : "");
+  }
+  if(earned === maxForStation && !wasDone) celebrate();
+}
+
+function wireDnD(root=document){
+  $$(".chip,.token,.seq-card", root).forEach(el=>{
+    if(el.dataset.dndWired) return;
+    el.dataset.dndWired="1";
+    el.draggable = true;
+    el.addEventListener("dragstart",e=>{
+      e.dataTransfer.setData("text/plain", el.id);
+      state.selectedId = el.id;
+      el.classList.add("selected");
+    });
+    el.addEventListener("dragend",()=>{
+      el.classList.remove("selected");
+    });
+    el.addEventListener("click",()=>{
+      $$(".selected").forEach(x=>x.classList.remove("selected"));
+      state.selectedId = el.id;
+      el.classList.add("selected");
+      toast("Selected. Now click a drop zone.");
+    });
+  });
+
+  $$(".dropzone, .sequence", root).forEach(zone=>{
+    if(zone.dataset.dropWired) return;
+    zone.dataset.dropWired="1";
+    zone.addEventListener("dragover",e=>{e.preventDefault();zone.classList.add("over")});
+    zone.addEventListener("dragleave",()=>zone.classList.remove("over"));
+    zone.addEventListener("drop",e=>{
+      e.preventDefault();
+      zone.classList.remove("over");
+      const id = e.dataTransfer.getData("text/plain") || state.selectedId;
+      moveToZone(id,zone);
+    });
+    zone.addEventListener("click",()=>{
+      if(state.selectedId) moveToZone(state.selectedId,zone);
+    });
+  });
+}
+
+function moveToZone(id,zone){
+  const el = document.getElementById(id);
+  if(!el) return;
+  const target = zone.querySelector(".chips,.tokens") || zone;
+  target.appendChild(el);
+  el.classList.remove("selected");
+  state.selectedId = null;
+  if(el.classList.contains("token")) el.classList.add("placed");
+  wireDnD(document);
+}
+
+function makeChip(id,text,cat){
+  const el=document.createElement("div");
+  el.id=id;el.className="chip";el.draggable=true;el.dataset.cat=cat;
+  el.innerHTML=text;
+  return el;
+}
+
+/* ---------------- Activity 1 ---------------- */
+const a1Cards = [
+  ["c1","Board normally calls the general meeting","convened"],
+  ["c2","Members can requisition an EGM under Section 100","convened"],
+  ["c3","Tribunal may direct/call meetings in appropriate circumstances","convened"],
+  ["c4","21 clear days' notice","convened"],
+  ["c5","Proper quorum under Section 103","constituted"],
+  ["c6","Chairman under Section 104","constituted"],
+  ["c7","Attendance of directors / auditors as applicable","constituted"],
+  ["c8","Business follows the agenda and notice","conducted"],
+  ["c9","Discussion before voting","conducted"],
+  ["c10","Chairman maintains order and fair discussion","conducted"],
+  ["c11","Only matters within the meeting's scope","conducted"],
+  ["c12","Members may move amendments to proposed resolutions","conducted"]
+];
+
+function initA1(){
+  const bank=$("#bank1");
+  bank.innerHTML="";
+  $$(".dropzone[data-cat]").forEach(z=>z.querySelector(".chips").innerHTML="");
+  a1Cards.forEach(([id,text,cat])=>bank.appendChild(makeChip(id,text,cat)));
+  wireDnD($("#a1"));
+  $("#resetA1").onclick=initA1;
+  $("#checkA1").onclick=()=>{
+    let correct=0, placed=0;
+    a1Cards.forEach(([id,_,cat])=>{
+      const el=$("#"+id);
+      const zone=el?.closest(".dropzone");
+      el.classList.remove("correct","wrong");
+      if(zone){
+        placed++;
+        if(zone.dataset.cat===cat){correct++;el.classList.add("correct")}
+        else el.classList.add("wrong");
+      }else el.classList.add("wrong");
+    });
+    const max=a1Cards.length===12?20:20;
+    const earned=Math.round((correct/a1Cards.length)*max);
+    finish("a1",earned,max,`You placed ${correct}/${a1Cards.length} cards correctly (${earned}/${max}). ${placed<a1Cards.length?"Move every remaining card before asking students to explain the errors.":"Now ask the class to justify one tricky card."}`);
+  };
+}
+initA1();
+
+/* Activity 3 */
+const a3Cards=[
+  ["n1","21 clear days' notice","include"],
+  ["n2","Place, date, day, time and exact hour","include"],
+  ["n3","Clear agenda / business","include"],
+  ["n4","Shorter notice for AGM with consent of 95% of members entitled to vote","include"],
+  ["n5","Notice to every member","include"],
+  ["n6","Notice to directors and auditors","include"],
+  ["n7","Readable electronic notice with relevant link / URL","include"],
+  ["n8","Oral message only; no written/electronic notice","exclude"],
+  ["n9","Intentionally omit a person entitled to notice","exclude"],
+  ["n10","Conduct unrelated business that is not in the notice / agenda","exclude"]
+];
+function initA3(){
+  $("#bank3").innerHTML="";
+  $("#noticeBoard .chips").innerHTML="";
+  $("#noticeOutside .chips").innerHTML="";
+  a3Cards.forEach(([id,text,cat])=>$("#bank3").appendChild(makeChip(id,text,cat)));
+  wireDnD($("#a3"));
+  $("#resetA3").onclick=initA3;
+  $("#checkA3").onclick=()=>{
+    let correct=0;
+    a3Cards.forEach(([id,_,cat])=>{
+      const el=$("#"+id), zone=el?.closest(".dropzone");
+      el.classList.remove("correct","wrong");
+      if(zone && zone.dataset.cat===cat){correct++;el.classList.add("correct")}
+      else el.classList.add("wrong");
+    });
+    const max=15, earned=Math.round(correct/a3Cards.length*max);
+    finish("a3",earned,max,`Notice check: ${correct}/${a3Cards.length} cards correctly placed. The deck also notes that intentional omission may invalidate a meeting, while accidental omission does not.`);
+  };
+}
+initA3();
+
+/* Activity 4 */
+const a4Steps=[
+  ["s1","Issue proper notice","1"],
+  ["s2","Convene the meeting","2"],
+  ["s3","Confirm quorum","3"],
+  ["s4","Chairman presides and regulates proceedings","4"],
+  ["s5","Follow the agenda / notice","5"],
+  ["s6","Discuss the proposed resolution","6"],
+  ["s7","Vote on the resolution","7"],
+  ["s8","Record and maintain minutes","8"]
+];
+
+function initA4(){
+  $("#bank4").innerHTML="";
+  $("#sequenceZone").innerHTML='<span class="muted" id="seqPlaceholder">Drop cards here in the order you choose…</span>';
+  [...a4Steps].sort(()=>Math.random()-0.5).forEach(([id,text,n])=>{
+    const el=document.createElement("div");
+    el.id=id;el.className="seq-card";el.draggable=true;el.dataset.order=n;
+    el.innerHTML=`<span class="n">•</span>${text}`;
+    $("#bank4").appendChild(el);
+  });
+  wireDnD($("#a4"));
+  $("#resetA4").onclick=initA4;
+  $("#checkA4").onclick=()=>{
+    const children=[...$("#sequenceZone").children].filter(x=>x.classList.contains("seq-card"));
+    let correct=0;
+    children.forEach((el,i)=>{
+      el.classList.remove("correct","wrong");
+      const expected=i+1;
+      const yes=Number(el.dataset.order)===expected;
+      el.style.borderColor=yes?"#61bd89":"#dc8a80";
+      el.style.background=yes?"#e9f8ef":"#fff0ee";
+      if(yes)correct++;
+    });
+    const max=15, earned=Math.round(correct/8*max);
+    finish("a4",earned,max,`Sequence score: ${correct}/8 positions correct. Use this as a classroom flow; it is a teaching sequence derived from the deck.`);
+  };
+}
+initA4();
+
+/* Activity 7 */
+const businessCards=[
+  ["b1","Financial statements and reports","ordinary"],
+  ["b2","Declaration of dividend","ordinary"],
+  ["b3","Appointment of directors replacing those retiring","ordinary"],
+  ["b4","Appointment / remuneration of auditors","ordinary"],
+  ["b5","Changing the company name","special"],
+  ["b6","Changing the object clause","special"]
+];
+const minuteItems=[
+  ["m1","Fair and accurate summary of proceedings",true],
+  ["m2","Record directors present and those not concurring with resolutions",true],
+  ["m3","Properly numbered, dated and signed",true],
+  ["m4","Generally prepared within 30 days",true],
+  ["m5","Serve as evidence of the proceedings",true],
+  ["m6","Tampering is subject to legal penalties",true],
+  ["m7","Leave minutes unsigned because the meeting is finished",false],
+  ["m8","Replace the record with informal personal notes only",false]
+];
+
+function initA7(){
+  $("#businessBank").innerHTML="";
+  $("#ordinaryZone .chips").innerHTML="";
+  $("#specialZone .chips").innerHTML="";
+  businessCards.forEach(([id,text,cat])=>$("#businessBank").appendChild(makeChip(id,text,cat)));
+  const mc=$("#minutesChecklist");mc.innerHTML="";
+  minuteItems.forEach(([id,text,truth])=>{
+    const wrap=document.createElement("label");wrap.className="check-item";
+    wrap.innerHTML=`<input type="checkbox" id="${id}" data-answer="${truth}"><span>${text}</span>`;
+    mc.appendChild(wrap);
+  });
+  wireDnD($("#a7"));
+  $("#resetA7").onclick=initA7;
+  $("#checkA7").onclick=()=>{
+    let sortCorrect=0;
+    businessCards.forEach(([id,_,cat])=>{
+      const el=$("#"+id),zone=el?.closest(".dropzone");
+      el.classList.remove("correct","wrong");
+      if(zone && zone.dataset.cat===cat){sortCorrect++;el.classList.add("correct")}
+      else el.classList.add("wrong");
+    });
+    let minuteCorrect=0;
+    minuteItems.forEach(([id,_,truth])=>{
+      const checked=$("#"+id).checked;
+      if(checked===truth) minuteCorrect++;
+    });
+    const sortPts=Math.round(sortCorrect/businessCards.length*5);
+    const minutePts=Math.round(minuteCorrect/minuteItems.length*5);
+    const earned=sortPts+minutePts,max=10;
+    finish("a7",earned,max,`Final station: business sorter ${sortCorrect}/${businessCards.length}; minutes checklist ${minuteCorrect}/${minuteItems.length}.`);
+  };
+}
+initA7();
+
+/* Global navigation */
+$$(".nav-btn").forEach(btn=>{
+  btn.addEventListener("click",()=>{
+    $$(".nav-btn").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    $$(".activity").forEach(a=>a.classList.remove("active"));
+    $("#"+btn.dataset.target).classList.add("active");
+    window.scrollTo({top:document.querySelector(".workspace").offsetTop-12,behavior:"smooth"});
+  });
+});
+
+wireDnD(document);
+updateHeader();
+
+/* Timer */
+function fmt(sec){
+  const m=Math.floor(sec/60).toString().padStart(2,"0");
+  const s=(sec%60).toString().padStart(2,"0");
+  return `${m}:${s}`;
+}
+function renderTimer(){
+  setText("timerBtn", (state.timerRunning?"⏸ Pause ":"▶ Start ") + fmt(state.timer));
+}
+$("#timerBtn").onclick=()=>{
+  state.timerRunning=!state.timerRunning;
+  if(state.timerRunning){
+    state.timerInterval=setInterval(()=>{
+      state.timer--;
+      renderTimer();
+      if(state.timer<=0){
+        clearInterval(state.timerInterval);
+        state.timerRunning=false;
+        toast("Time is up. Move to the discussion / debrief phase.");
+      }
+    },1000);
+  }else{
+    clearInterval(state.timerInterval);
+  }
+  renderTimer();
+};
+
+$("#fullscreenBtn").onclick=async()=>{
+  try{
+    if(!document.fullscreenElement) await document.documentElement.requestFullscreen();
+    else await document.exitFullscreen();
+  }catch(e){toast("Fullscreen is not available in this browser.");}
+};
+
+$("#resetAllBtn").onclick=()=>{
+  state={score:0,completed:new Set(),selectedId:null,timer:600,timerRunning:false,timerInterval:null};
+  clearInterval(state.timerInterval);
+  initA1();initA3();initA4();initA7();
+  $$(".nav-btn").forEach((b,i)=>b.classList.toggle("active",i===0));
+  $$(".activity").forEach((a,i)=>a.classList.toggle("active",i===0));
+  updateHeader();renderTimer();toast("All stations reset.");
+};
+
+/* Student / Teacher mode */
+$("#modeSelect").onchange=()=>{
+  const teacher=$("#modeSelect").value==="teacher";
+  $$(".teacher").forEach(x=>x.style.display=teacher?"block":"none");
+  toast(teacher?"Teacher Mode enabled.":"Student Mode enabled.");
+};
+$("#modeSelect").dispatchEvent(new Event("change"));
+
+/* keep dropped A4 cards ordered by insertion */
+$("#sequenceZone").addEventListener("drop",()=>{
+  const ph=$("#seqPlaceholder"); if(ph) ph.remove();
+});
+
+/* Quorum room/token special drag-and-drop handling */
+const quorumRoom = $("#quorumRoom");
+quorumRoom.addEventListener("dragover", e=>{e.preventDefault(); quorumRoom.classList.add("over")});
+quorumRoom.addEventListener("dragleave", ()=>quorumRoom.classList.remove("over"));
+quorumRoom.addEventListener("drop", e=>{
+  e.preventDefault();
+  quorumRoom.classList.remove("over");
+  const id=e.dataTransfer.getData("text/plain") || state.selectedId;
+  const el=$("#"+id);
+  if(el && el.classList.contains("token")){
+    $("#roomTokens").appendChild(el);
+    el.classList.remove("selected");
+    el.classList.add("placed");
+    state.selectedId=null;
+    updateQuorum();
+  }
+});
+quorumRoom.addEventListener("click", ()=>{
+  if(state.selectedId){
+    const el=$("#"+state.selectedId);
+    if(el && el.classList.contains("token")){
+      $("#roomTokens").appendChild(el);
+      el.classList.remove("selected");
+      el.classList.add("placed");
+      state.selectedId=null;
+    }
+  }
+  updateQuorum();
+});
+
+/* Remove A4 placeholder after click-to-place as well */
+$("#sequenceZone").addEventListener("click", ()=>{
+  const ph=$("#seqPlaceholder");
+  if(ph && $$(".seq-card", $("#sequenceZone")).length) ph.remove();
+});
+
+/* A3/A1/A7 drop zones can return chips; no special logic needed */
+renderTimer();
+</script>
+</body>
+</html>
 
